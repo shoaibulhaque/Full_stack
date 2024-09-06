@@ -1,18 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import Filter from "./components/Filter";
 import PersonForm from "./components/PersonForm";
 import Persons from "./components/Persons";
+import personService from "./services/persons";
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: "Arto Hellas", number: "040-123456", id: 1 },
-    { name: "Ada Lovelace", number: "39-44-5323523", id: 2 },
-    { name: "Dan Abramov", number: "12-43-234345", id: 3 },
-    { name: "Mary Poppendieck", number: "39-23-6423122", id: 4 },
-  ]);
+  const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [number, setNumber] = useState("");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    personService.getAll().then((persons) => {
+      setPersons(persons);
+    });
+  }, []);
 
   const searchPerson = (person) => {
     let word = "";
@@ -33,7 +36,10 @@ const App = () => {
     if (isDuplicate) {
       alert(`${newName} is already added to phonebook`);
     } else {
-      setPersons([...persons, { name: newName, number }]);
+      const newPerson = { name: newName, number };
+      personService.createObj(newPerson).then((newPerson) => {
+        setPersons([...persons, newPerson]);
+      });
     }
 
     setNewName("");
