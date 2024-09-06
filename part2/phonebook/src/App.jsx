@@ -1,4 +1,7 @@
 import { useState } from "react";
+import Filter from "./components/Filter";
+import PersonForm from "./components/PersonForm";
+import Persons from "./components/Persons";
 
 const App = () => {
   const [persons, setPersons] = useState([
@@ -8,62 +11,52 @@ const App = () => {
     { name: "Mary Poppendieck", number: "39-23-6423122", id: 4 },
   ]);
   const [newName, setNewName] = useState("");
-  const [number, setNumber] = useState();
+  const [number, setNumber] = useState("");
+  const [search, setSearch] = useState("");
 
-  function addPerson() {
-    let isDuplicate = false;
+  const searchPerson = (person) => {
+    let word = "";
+    if (search.length > 0) {
+      for (let i = 0; i < search.length; i++) {
+        word += person.name[i];
+      }
+      return word === search;
+    } else {
+      return person.name.includes(search);
+    }
+  };
 
-    const newPersons = persons.map((person) =>
-      person.name === newName
-        ? (isDuplicate = true) &&
-          alert(`${newName} is already added to phonebook`)
-        : person
-    );
+  const addPerson = (e) => {
+    e.preventDefault();
+    const isDuplicate = persons.some((person) => person.name === newName);
 
-    !isDuplicate &&
-      setPersons([...newPersons, { name: newName, number: number }]);
-  }
+    if (isDuplicate) {
+      alert(`${newName} is already added to phonebook`);
+    } else {
+      setPersons([...persons, { name: newName, number }]);
+    }
+
+    setNewName("");
+    setNumber("");
+  };
 
   return (
     <div>
       <h1>Phonebook</h1>
-      <div>
-        filter shown with: <input />
-      </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          addPerson();
-        }}
-      >
-        <h1>Add a new</h1>
-        <div>
-          name:
-          <input
-            onChange={(e) => {
-              setNewName(e.target.value);
-            }}
-            value={newName}
-          />
-        </div>
-        <div>
-          number:
-          <input
-            onChange={(e) => {
-              setNumber(e.target.value);
-            }}
-          />
-        </div>
-        <div>
-          <button type="submit">add</button>
-        </div>
-      </form>
-      <h2>Numbers</h2>
-      {persons.map((person) => (
-        <p key={person.name}>
-          {person.name} {person.number}
-        </p>
-      ))}
+
+      <Filter search={search} setSearch={setSearch} />
+
+      <h2>Add a new</h2>
+      <PersonForm
+        addPerson={addPerson}
+        newName={newName}
+        setNewName={setNewName}
+        number={number}
+        setNumber={setNumber}
+      />
+
+      <h3>Numbers</h3>
+      <Persons persons={persons} searchPerson={searchPerson} />
     </div>
   );
 };
