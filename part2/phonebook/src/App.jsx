@@ -18,11 +18,8 @@ const App = () => {
   }, []);
 
   const searchPerson = (person) => {
-    let word = "";
     if (search.length > 0) {
-      for (let i = 0; i < search.length; i++) {
-        word += person.name[i];
-      }
+      const word = person.name.substring(0, search.length);
       return word === search;
     } else {
       return person.name.includes(search);
@@ -31,10 +28,24 @@ const App = () => {
 
   const addPerson = (e) => {
     e.preventDefault();
-    const isDuplicate = persons.some((person) => person.name === newName);
+    const existingPerson = persons.find((person) => person.name === newName);
 
-    if (isDuplicate) {
-      alert(`${newName} is already added to phonebook`);
+    if (existingPerson) {
+      if (
+        window.confirm(
+          `${newName} is already added to phonebook, replace the old number with a new one?`
+        )
+      ) {
+        const updatedPerson = { ...existingPerson, number };
+        personService
+          .updateObj(updatedPerson, existingPerson.id)
+          .then((updatedPerson) => {
+            const updatedPersons = persons.map((person) =>
+              person.id === updatedPerson.id ? updatedPerson : person
+            );
+            setPersons(updatedPersons);
+          });
+      }
     } else {
       const newPerson = { name: newName, number };
       personService.createObj(newPerson).then((newPerson) => {
@@ -44,6 +55,17 @@ const App = () => {
 
     setNewName("");
     setNumber("");
+  };
+
+  const deletePerson = (id, personName) => {
+    const handleDelete = () => {
+      if (window.confirm(`Delete ${personName}?`)) {
+        personService.deleteObj(id).then(() => {
+          setPersons(persons.filter((person) => person.id !== id));
+        });
+      }
+    };
+    return handleDelete;
   };
 
   return (
@@ -62,7 +84,11 @@ const App = () => {
       />
 
       <h3>Numbers</h3>
-      <Persons persons={persons} searchPerson={searchPerson} />
+      <Persons
+        persons={persons}
+        searchPerson={searchPerson}
+        deletePerson={deletePerson}
+      />
     </div>
   );
 };
