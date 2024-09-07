@@ -3,6 +3,7 @@ import axios from "axios";
 import Filter from "./components/Filter";
 import PersonForm from "./components/PersonForm";
 import Persons from "./components/Persons";
+import Notification from "./components/Notification";
 import personService from "./services/persons";
 
 const App = () => {
@@ -10,6 +11,7 @@ const App = () => {
   const [newName, setNewName] = useState("");
   const [number, setNumber] = useState("");
   const [search, setSearch] = useState("");
+  const [notification, setNotification] = useState({ message: "", type: "" });
 
   useEffect(() => {
     personService.getAll().then((persons) => {
@@ -28,6 +30,16 @@ const App = () => {
 
   const addPerson = (e) => {
     e.preventDefault();
+
+    if (!newName || !number) {
+      setNotification({
+        message: "Both name and number fields must be filled",
+        type: "error",
+      });
+      setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+      return;
+    }
+
     const existingPerson = persons.find((person) => person.name === newName);
 
     if (existingPerson) {
@@ -39,38 +51,75 @@ const App = () => {
         const updatedPerson = { ...existingPerson, number };
         personService
           .updateObj(updatedPerson, existingPerson.id)
-          .then((updatedPerson) => {
-            const updatedPersons = persons.map((person) =>
-              person.id === updatedPerson.id ? updatedPerson : person
+          .then((returnedPerson) => {
+            setPersons(
+              persons.map((person) =>
+                person.id !== existingPerson.id ? person : returnedPerson
+              )
             );
-            setPersons(updatedPersons);
+            setNotification({
+              message: `Updated ${newName}'s number`,
+              type: "success",
+            });
+            setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+          })
+          .catch((error) => {
+            setNotification({
+              message: `Information of ${newName} has already been removed from server`,
+              type: "error",
+            });
+            setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+            setPersons(
+              persons.filter((person) => person.id !== existingPerson.id)
+            );
           });
       }
     } else {
       const newPerson = { name: newName, number };
-      personService.createObj(newPerson).then((newPerson) => {
-        setPersons([...persons, newPerson]);
-      });
+      personService
+        .createObj(newPerson)
+        .then((returnedPerson) => {
+          setPersons(persons.concat(returnedPerson));
+          setNotification({ message: `Added ${newName}`, type: "success" });
+          setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+        })
+        .catch((error) => {
+          setNotification({
+            message: `Failed to add ${newName}`,
+            type: "error",
+          });
+          setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+        });
     }
 
     setNewName("");
     setNumber("");
   };
 
-  const deletePerson = (id, personName) => {
-    const handleDelete = () => {
-      if (window.confirm(`Delete ${personName}?`)) {
-        personService.deleteObj(id).then(() => {
+  const deletePerson = (id, name) => () => {
+    if (window.confirm(`Delete ${name}?`)) {
+      personService
+        .deleteObj(id)
+        .then(() => {
           setPersons(persons.filter((person) => person.id !== id));
+          setNotification({ message: `Deleted ${name}`, type: "success" });
+          setTimeout(() => setNotification({ message: "", type: "" }), 3000);
+        })
+        .catch((error) => {
+          setNotification({
+            message: `Failed to delete ${name}`,
+            type: "error",
+          });
+          setTimeout(() => setNotification({ message: "", type: "" }), 3000);
         });
-      }
-    };
-    return handleDelete;
+    }
   };
 
   return (
     <div>
       <h1>Phonebook</h1>
+
+      <Notification message={notification.message} type={notification.type} />
 
       <Filter search={search} setSearch={setSearch} />
 
